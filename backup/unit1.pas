@@ -76,9 +76,8 @@ type
 
   private
     FOriginalBackground: TBitmap;      // Оригинал фона
-    FBackgroundFileName: string;       // Путь к последнему загруженному фону
-    FUpdateTimer: TTimer;              // Таймер для отложенного обновления
-    FNeedsUpdate: Boolean;             // Флаг необходимости обновления
+    FUpdateTimer: TTimer;              // Таймер для отложенного обновления (пока не используется, но оставим)
+    FNeedsUpdate: Boolean;             // Флаг (резерв)
 
     procedure UpdateStatus(const Msg: string);
     procedure SwitchToEditor;
@@ -86,11 +85,10 @@ type
     procedure SwitchToAbout;
     procedure ApplyModernStyle;
     procedure UpdatePreview;            // Главный метод перерисовки
-    procedure DelayedUpdateTimer(Sender: TObject); // Обработчик таймера
+    procedure DelayedUpdateTimer(Sender: TObject); // (запасной)
     procedure SetupUpdateTimer;         // Инициализация таймера
 
   public
-
   end;
 
 var
@@ -133,13 +131,16 @@ begin
   // Создание объекта для фона
   FOriginalBackground := TBitmap.Create;
 
-  // Настройка таймера для отложенного обновления
+  // Настройка таймера (оставим для возможного использования позже)
   SetupUpdateTimer;
 
   // Применение стилей
   ApplyModernStyle;
 
   SwitchToEditor;
+
+  // Первоначальное обновление предпросмотра
+  UpdatePreview;
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -151,7 +152,7 @@ end;
 procedure TMainForm.SetupUpdateTimer;
 begin
   FUpdateTimer := TTimer.Create(Self);
-  FUpdateTimer.Interval := 300; // 300 мс задержки
+  FUpdateTimer.Interval := 300;
   FUpdateTimer.Enabled := False;
   FUpdateTimer.OnTimer := @DelayedUpdateTimer;
 end;
@@ -206,7 +207,6 @@ begin
   ToolButtonNew.Down := True;
   ToolButtonGallery.Down := False;
   ToolButtonHelp.Down := False;
-  // Создаём папку cards, если её нет
   if not DirectoryExists('cards') then
     CreateDir('cards');
 end;
@@ -237,7 +237,6 @@ end;
 procedure TMainForm.ToolButtonNewClick(Sender: TObject);
 begin
   SwitchToEditor;
-  // Очистка редактора (можно реализовать позже)
   UpdateStatus('Создание новой открытки');
 end;
 
@@ -270,6 +269,8 @@ begin
     Ord('G'): if ssCtrl in Shift then ToolButtonGalleryClick(Self);
     Ord('S'): if ssCtrl in Shift then ToolButtonSaveClick(Self);
   end;
+  if Key = 13 then
+     ShowMessage('Enter в форме');
 end;
 
 // ---- Загрузка фона ----
@@ -283,9 +284,7 @@ begin
     Picture := TPicture.Create;
     try
       Picture.LoadFromFile(OpenPictureDialog1.FileName);
-      // Преобразуем в TBitmap (если нужно сохранить оригинал)
       FOriginalBackground.Assign(Picture.Graphic);
-      // Обновляем предпросмотр
       UpdatePreview;
       UpdateStatus('Фон загружен: ' + ExtractFileName(OpenPictureDialog1.FileName));
     except
@@ -303,20 +302,18 @@ begin
   if MessageDlg('Очистка', 'Очистить редактор и начать новую открытку?',
     mtConfirmation, [mbYes, mbNo], 0) = mrYes then
   begin
-    // Очищаем фон
-    FOriginalBackground.SetSize(0, 0); // или Free и Create заново
-    // Очищаем текстовые поля
+    FOriginalBackground.SetSize(0, 0);
     MemoText.Clear;
     EditRecipient.Clear;
     Edit1.Clear;
-    // Сбрасываем настройки по умолчанию (опционально)
     cmbFontName.ItemIndex := cmbFontName.Items.IndexOf('Arial');
+    if cmbFontName.ItemIndex = -1 then cmbFontName.ItemIndex := 0;
     SpinEdit1.Value := 24;
     ColorBox1.Selected := clRed;
     CheckBox1.Checked := False;
     CheckBox2.Checked := False;
     CheckBox3.Checked := False;
-    RadioButton2.Checked := True; // По центру
+    RadioButton2.Checked := True;
     UpdatePreview;
     UpdateStatus('Редактор очищен');
   end;
@@ -329,7 +326,7 @@ var
   Buffer: TBitmap;
   TextRect: TRect;
   TextY: Integer;
-  TS: TTextStyle;              // Для работы с TextStyle
+  TS: TTextStyle;
 begin
   Buffer := TBitmap.Create;
   try
@@ -353,7 +350,7 @@ begin
     Buffer.Canvas.Font.Size := SpinEdit1.Value;
     Buffer.Canvas.Font.Color := ColorBox1.Selected;
 
-    // Настройка стилей шрифта (жирный, курсив, подчеркнутый)
+    // Стили шрифта
     Buffer.Canvas.Font.Style := [];
     if CheckBox1.Checked then
       Buffer.Canvas.Font.Style := Buffer.Canvas.Font.Style + [fsBold];
@@ -362,46 +359,44 @@ begin
     if CheckBox3.Checked then
       Buffer.Canvas.Font.Style := Buffer.Canvas.Font.Style + [fsUnderline];
 
-    // ---- ИСПРАВЛЕНО: работа с TextStyle ----
-    TS := Buffer.Canvas.TextStyle;  // Читаем текущие настройки
-
     // Выравнивание
+    TS := Buffer.Canvas.TextStyle;
     if RadioButton1.Checked then
       TS.Alignment := taLeftJustify
     else if RadioButton2.Checked then
       TS.Alignment := taCenter
     else if RadioButton3.Checked then
       TS.Alignment := taRightJustify;
+    TS.WordBreak := True;
+    Buffer.Canvas.TextStyle := TS;
 
-    TS.WordBreak := True;           // Перенос слов
-    Buffer.Canvas.TextStyle := TS;  // Применяем настройки
-    // ---------------------------------------
+    Buffer.Canvas.Brush.Style := bsClear; // прозрачный фон
 
-    Buffer.Canvas.Brush.Style := bsClear; // Прозрачный фон для текста
+    // Область для основного текста (с защитой от слишком узкого буфера)
+    if Buffer.Width > 100 then
+      TextRect := Rect(50, 50, Buffer.Width - 50, Buffer.Height - 100)
+    else
+      TextRect := Rect(5, 5, Buffer.Width - 5, Buffer.Height - 10);
 
-    // Область для основного текста (с отступами)
-    TextRect := Rect(50, 50, Buffer.Width - 50, Buffer.Height - 100);
+    // Рисуем основной текст (если пусто – подсказка)
+    if MemoText.Text <> '' then
+      Buffer.Canvas.TextRect(TextRect, TextRect.Left, TextRect.Top, MemoText.Text)
+    else
+      Buffer.Canvas.TextRect(TextRect, TextRect.Left, TextRect.Top, 'Введите текст поздравления');
 
-    // Рисуем основной текст
-    Buffer.Canvas.TextRect(TextRect, TextRect.Left, TextRect.Top, MemoText.Text);
-
-    // Рисуем "Кому" и "От кого" внизу
-    Buffer.Canvas.Font.Size := 16; // Меньше основного
+    // Рисуем "Кому" и "От кого"
+    Buffer.Canvas.Font.Size := 16;
     TextY := Buffer.Height - 40;
-
     if EditRecipient.Text <> '' then
       Buffer.Canvas.TextOut(50, TextY, 'Для: ' + EditRecipient.Text);
-
     if Edit1.Text <> '' then
-    begin
-      // Выравниваем "От кого" по правому краю
       Buffer.Canvas.TextOut(Buffer.Width - 50 -
         Buffer.Canvas.TextWidth('От: ' + Edit1.Text),
         TextY, 'От: ' + Edit1.Text);
-    end;
 
     // Отображаем результат
     imgPreview.Picture.Assign(Buffer);
+    imgPreview.Refresh;
 
   finally
     Buffer.Free;
@@ -409,10 +404,12 @@ begin
 end;
 
 // ---- Обработчики изменений параметров ----
+// Все обработчики, кроме MemoTextChange, вызывают UpdatePreview немедленно.
+// MemoTextChange также вызывает UpdatePreview напрямую (без таймера), чтобы текст обновлялся сразу.
 
 procedure TMainForm.cmbFontNameChange(Sender: TObject);
 begin
-  UpdatePreview; // Мгновенно, т.к. это не текст
+  UpdatePreview;
 end;
 
 procedure TMainForm.SpinEdit1Change(Sender: TObject);
@@ -437,16 +434,13 @@ end;
 
 procedure TMainForm.EditChange(Sender: TObject);
 begin
-  // Для полей "Кому" и "От кого" тоже можно обновлять сразу
   UpdatePreview;
 end;
 
 procedure TMainForm.MemoTextChange(Sender: TObject);
 begin
-  // При изменении текста запускаем таймер с задержкой
-  FNeedsUpdate := True;
-  FUpdateTimer.Enabled := False;  // Сброс
-  FUpdateTimer.Enabled := True;
+  // Немедленное обновление – текст должен появляться сразу
+  UpdatePreview;
 end;
 
 end.

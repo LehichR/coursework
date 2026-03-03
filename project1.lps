@@ -12,7 +12,7 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="25"/>
       </Unit>
       <Unit>
         <Filename Value="unit1.pas"/>
@@ -22,9 +22,9 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Unit1"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="427"/>
-        <CursorPos X="14" Y="452"/>
-        <UsageCount Value="24"/>
+        <TopLine Value="251"/>
+        <CursorPos X="7" Y="271"/>
+        <UsageCount Value="25"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit>
@@ -38,22 +38,6 @@
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="194" Column="54" TopLine="185"/>
-      </Position>
-      <Position>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="195" Column="54" TopLine="186"/>
-      </Position>
-      <Position>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="196" Column="54" TopLine="187"/>
-      </Position>
-      <Position>
-        <Filename Value="unit1.pas"/>
-        <Caret Line="197" Column="54" TopLine="188"/>
-      </Position>
       <Position>
         <Filename Value="unit1.pas"/>
         <Caret Line="198" Column="54" TopLine="189"/>
@@ -157,6 +141,22 @@
       <Position>
         <Filename Value="unit1.pas"/>
         <Caret Line="312" Column="81" TopLine="298"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="350" Column="38" TopLine="338"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="447" Column="43" TopLine="427"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="454" Column="37" TopLine="437"/>
+      </Position>
+      <Position>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="435" Column="64" TopLine="419"/>
       </Position>
     </JumpHistory>
     <RunParams>
