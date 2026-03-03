@@ -76,7 +76,7 @@ type
 
   private
     FOriginalBackground: TBitmap;      // Оригинал фона
-    FUpdateTimer: TTimer;              // Таймер для отложенного обновления (пока не используется, но оставим)
+    FUpdateTimer: TTimer;              // Таймер для отложенного обновления
     FNeedsUpdate: Boolean;             // Флаг (резерв)
 
     procedure UpdateStatus(const Msg: string);
@@ -85,7 +85,7 @@ type
     procedure SwitchToAbout;
     procedure ApplyModernStyle;
     procedure UpdatePreview;            // Главный метод перерисовки
-    procedure DelayedUpdateTimer(Sender: TObject); // (запасной)
+    procedure DelayedUpdateTimer(Sender: TObject);
     procedure SetupUpdateTimer;         // Инициализация таймера
 
   public
@@ -109,6 +109,9 @@ begin
 
   imgPreview.Transparent := False;
   imgPreview.AutoSize := False;
+  imgPreview.Stretch := False;      // Не растягиваем, сохраняем чёткость
+  imgPreview.Proportional := True;
+  imgPreview.Center := True;
 
   StatusBar1.SimplePanel := True;
   StatusBar1.SimpleText := 'Готово';
@@ -131,15 +134,18 @@ begin
   // Создание объекта для фона
   FOriginalBackground := TBitmap.Create;
 
-  // Настройка таймера (оставим для возможного использования позже)
+  // Настройка таймера
   SetupUpdateTimer;
 
   // Применение стилей
   ApplyModernStyle;
 
-  SwitchToEditor;
+  // Установка начальных значений параметров текста
+  SpinEdit1.Value := 24;          // Чёткий крупный текст
+  ColorBox1.Selected := clRed;
+  RadioButton2.Checked := True;    // По центру
 
-  // Первоначальное обновление предпросмотра
+  SwitchToEditor;
   UpdatePreview;
 end;
 
@@ -328,6 +334,9 @@ var
 begin
   Buffer := TBitmap.Create;
   try
+    // 32-битный формат для качественного сглаживания
+    Buffer.PixelFormat := pf32bit;
+
     // Определяем размер буфера
     if (FOriginalBackground.Width > 0) and (FOriginalBackground.Height > 0) then
     begin
@@ -347,6 +356,8 @@ begin
     Buffer.Canvas.Font.Name := cmbFontName.Text;
     Buffer.Canvas.Font.Size := SpinEdit1.Value;
     Buffer.Canvas.Font.Color := ColorBox1.Selected;
+    // Улучшенное качество текста
+    Buffer.Canvas.Font.Quality := fqClearType;  // или fqAntialiased
 
     // Стили шрифта
     Buffer.Canvas.Font.Style := [];
@@ -357,26 +368,27 @@ begin
     if CheckBox3.Checked then
       Buffer.Canvas.Font.Style := Buffer.Canvas.Font.Style + [fsUnderline];
 
-    // Выравнивание
+    // Настройка выравнивания и переноса
     TS := Buffer.Canvas.TextStyle;
     if RadioButton1.Checked then
       TS.Alignment := taLeftJustify
     else if RadioButton2.Checked then
       TS.Alignment := taCenter
-    else if RadioButton3.Checked then
+    else
       TS.Alignment := taRightJustify;
     TS.WordBreak := True;
+    TS.SingleLine := False;
     Buffer.Canvas.TextStyle := TS;
 
     Buffer.Canvas.Brush.Style := bsClear; // прозрачный фон
 
-    // Область для основного текста (с защитой от слишком узкого буфера)
+    // Область для основного текста
     if Buffer.Width > 100 then
       TextRect := Rect(50, 50, Buffer.Width - 50, Buffer.Height - 100)
     else
       TextRect := Rect(5, 5, Buffer.Width - 5, Buffer.Height - 10);
 
-    // Рисуем основной текст (если пусто – подсказка)
+    // Рисуем основной текст
     if MemoText.Text <> '' then
       Buffer.Canvas.TextRect(TextRect, TextRect.Left, TextRect.Top, MemoText.Text)
     else
@@ -402,8 +414,6 @@ begin
 end;
 
 // ---- Обработчики изменений параметров ----
-// Все обработчики, кроме MemoTextChange, вызывают UpdatePreview немедленно.
-// MemoTextChange также вызывает UpdatePreview напрямую (без таймера), чтобы текст обновлялся сразу.
 
 procedure TMainForm.cmbFontNameChange(Sender: TObject);
 begin
@@ -437,8 +447,7 @@ end;
 
 procedure TMainForm.MemoTextChange(Sender: TObject);
 begin
-  // Немедленное обновление – текст должен появляться сразу
-  UpdatePreview;
+  UpdatePreview;  // Немедленное обновление
 end;
 
 end.

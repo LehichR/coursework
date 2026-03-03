@@ -116,6 +116,16 @@ begin
   ToolBar1.Flat := True;
   ToolBar1.Transparent := False;
 
+   // ---- Установка начальных значений ----
+  SpinEdit1.Value := 24;          // Явно ставим размер шрифта 24
+  ColorBox1.Selected := clRed;    // Цвет по умолчанию
+  RadioButton2.Checked := True;    // Выравнивание по центру
+
+  // Убедимся, что imgPreview не масштабирует
+  imgPreview.Stretch := False;     // Не растягивать!
+  imgPreview.Proportional := True; // Сохранять пропорции (если нужно)
+  imgPreview.Center := True;       // Центрировать, если меньше панели
+
   // Настройка диалога выбора фона
   OpenPictureDialog1.Filter := 'Изображения|*.bmp;*.jpg;*.jpeg;*.png|Все файлы|*.*';
   OpenPictureDialog1.Title := 'Выберите фоновое изображение';
@@ -269,8 +279,6 @@ begin
     Ord('G'): if ssCtrl in Shift then ToolButtonGalleryClick(Self);
     Ord('S'): if ssCtrl in Shift then ToolButtonSaveClick(Self);
   end;
-  if Key = 13 then
-     ShowMessage('Enter в форме');
 end;
 
 // ---- Загрузка фона ----
@@ -308,7 +316,7 @@ begin
     Edit1.Clear;
     cmbFontName.ItemIndex := cmbFontName.Items.IndexOf('Arial');
     if cmbFontName.ItemIndex = -1 then cmbFontName.ItemIndex := 0;
-    SpinEdit1.Value := 24;
+    SpinEdit1.Value := 24;   // Увеличил размер по умолчанию для лучшей видимости
     ColorBox1.Selected := clRed;
     CheckBox1.Checked := False;
     CheckBox2.Checked := False;
@@ -330,7 +338,10 @@ var
 begin
   Buffer := TBitmap.Create;
   try
-    // Определяем размер буфера
+    // ---- Важно: 32-битный формат для сглаживания ----
+    Buffer.PixelFormat := pf32bit;
+
+    // Определяем размер буфера (как и раньше)
     if (FOriginalBackground.Width > 0) and (FOriginalBackground.Height > 0) then
     begin
       Buffer.Width := FOriginalBackground.Width;
@@ -347,10 +358,12 @@ begin
 
     // Настройка шрифта
     Buffer.Canvas.Font.Name := cmbFontName.Text;
-    Buffer.Canvas.Font.Size := SpinEdit1.Value;
+    Buffer.Canvas.Font.Size := SpinEdit1.Value;  // теперь точно 24
     Buffer.Canvas.Font.Color := ColorBox1.Selected;
+    // ---- Качество текста ----
+    Buffer.Canvas.Font.Quality := fqClearType;   // или fqAntialiased
 
-    // Стили шрифта
+    // Стили
     Buffer.Canvas.Font.Style := [];
     if CheckBox1.Checked then
       Buffer.Canvas.Font.Style := Buffer.Canvas.Font.Style + [fsBold];
@@ -365,26 +378,27 @@ begin
       TS.Alignment := taLeftJustify
     else if RadioButton2.Checked then
       TS.Alignment := taCenter
-    else if RadioButton3.Checked then
+    else
       TS.Alignment := taRightJustify;
     TS.WordBreak := True;
+    TS.SingleLine := False;
     Buffer.Canvas.TextStyle := TS;
 
-    Buffer.Canvas.Brush.Style := bsClear; // прозрачный фон
+    Buffer.Canvas.Brush.Style := bsClear;
 
-    // Область для основного текста (с защитой от слишком узкого буфера)
+    // Область текста
     if Buffer.Width > 100 then
       TextRect := Rect(50, 50, Buffer.Width - 50, Buffer.Height - 100)
     else
       TextRect := Rect(5, 5, Buffer.Width - 5, Buffer.Height - 10);
 
-    // Рисуем основной текст (если пусто – подсказка)
+    // Рисуем текст
     if MemoText.Text <> '' then
       Buffer.Canvas.TextRect(TextRect, TextRect.Left, TextRect.Top, MemoText.Text)
     else
       Buffer.Canvas.TextRect(TextRect, TextRect.Left, TextRect.Top, 'Введите текст поздравления');
 
-    // Рисуем "Кому" и "От кого"
+    // "Кому" и "От кого"
     Buffer.Canvas.Font.Size := 16;
     TextY := Buffer.Height - 40;
     if EditRecipient.Text <> '' then
@@ -394,7 +408,7 @@ begin
         Buffer.Canvas.TextWidth('От: ' + Edit1.Text),
         TextY, 'От: ' + Edit1.Text);
 
-    // Отображаем результат
+    // Отображаем
     imgPreview.Picture.Assign(Buffer);
     imgPreview.Refresh;
 
@@ -404,8 +418,7 @@ begin
 end;
 
 // ---- Обработчики изменений параметров ----
-// Все обработчики, кроме MemoTextChange, вызывают UpdatePreview немедленно.
-// MemoTextChange также вызывает UpdatePreview напрямую (без таймера), чтобы текст обновлялся сразу.
+// Все обработчики вызывают UpdatePreview немедленно.
 
 procedure TMainForm.cmbFontNameChange(Sender: TObject);
 begin
