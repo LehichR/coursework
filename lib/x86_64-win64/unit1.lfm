@@ -294,24 +294,24 @@ object MainForm: TMainForm
             Left = 200
             Height = 24
             Top = 0
-            Width = 112
-            Caption = 'RadioButton1'
+            Width = 62
+            Caption = 'Слева'
             TabOrder = 6
           end
           object RadioButton2: TRadioButton
             Left = 200
             Height = 24
             Top = 24
-            Width = 112
-            Caption = 'RadioButton2'
+            Width = 93
+            Caption = 'По центру'
             TabOrder = 7
           end
           object RadioButton3: TRadioButton
             Left = 200
             Height = 24
             Top = 48
-            Width = 112
-            Caption = 'RadioButton3'
+            Width = 72
+            Caption = 'Справа'
             TabOrder = 8
           end
         end
@@ -333,6 +333,7 @@ object MainForm: TMainForm
           Align = alRight
           Caption = 'Очистить'
           TabOrder = 4
+          OnClick = ButtonClearClick
         end
       end
     end

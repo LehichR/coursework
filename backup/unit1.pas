@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, StdCtrls,
-  ExtCtrls, Spin, ColorBox, ExtDlgs; // SynEdit удалён
+  ExtCtrls, Spin, ColorBox, ExtDlgs;
 
 type
 
@@ -275,18 +275,24 @@ end;
 // ---- Загрузка фона ----
 
 procedure TMainForm.ButtonLoadClick(Sender: TObject);
+var
+  Picture: TPicture;
 begin
   if OpenPictureDialog1.Execute then
   begin
+    Picture := TPicture.Create;
     try
-      FBackgroundFileName := OpenPictureDialog1.FileName;
-      FOriginalBackground.LoadFromFile(FBackgroundFileName);
+      Picture.LoadFromFile(OpenPictureDialog1.FileName);
+      // Преобразуем в TBitmap (если нужно сохранить оригинал)
+      FOriginalBackground.Assign(Picture.Graphic);
+      // Обновляем предпросмотр
       UpdatePreview;
-      UpdateStatus('Фон загружен: ' + ExtractFileName(FBackgroundFileName));
+      UpdateStatus('Фон загружен: ' + ExtractFileName(OpenPictureDialog1.FileName));
     except
       on E: Exception do
         ShowMessage('Ошибка загрузки изображения: ' + E.Message);
     end;
+    Picture.Free;
   end;
 end;
 
@@ -323,6 +329,7 @@ var
   Buffer: TBitmap;
   TextRect: TRect;
   TextY: Integer;
+  TS: TTextStyle;              // Для работы с TextStyle
 begin
   Buffer := TBitmap.Create;
   try
@@ -346,7 +353,7 @@ begin
     Buffer.Canvas.Font.Size := SpinEdit1.Value;
     Buffer.Canvas.Font.Color := ColorBox1.Selected;
 
-    // ИСПРАВЛЕНО: стили, а не размер
+    // Настройка стилей шрифта (жирный, курсив, подчеркнутый)
     Buffer.Canvas.Font.Style := [];
     if CheckBox1.Checked then
       Buffer.Canvas.Font.Style := Buffer.Canvas.Font.Style + [fsBold];
@@ -355,25 +362,31 @@ begin
     if CheckBox3.Checked then
       Buffer.Canvas.Font.Style := Buffer.Canvas.Font.Style + [fsUnderline];
 
+    // ---- ИСПРАВЛЕНО: работа с TextStyle ----
+    TS := Buffer.Canvas.TextStyle;  // Читаем текущие настройки
+
     // Выравнивание
     if RadioButton1.Checked then
-      Buffer.Canvas.TextStyle.Alignment := taLeftJustify
+      TS.Alignment := taLeftJustify
     else if RadioButton2.Checked then
-      Buffer.Canvas.TextStyle.Alignment := taCenter
+      TS.Alignment := taCenter
     else if RadioButton3.Checked then
-      Buffer.Canvas.TextStyle.Alignment := taRightJustify;
+      TS.Alignment := taRightJustify;
 
-    Buffer.Canvas.TextStyle.WordBreak := True;
-    Buffer.Canvas.Brush.Style := bsClear; // ИСПРАВЛЕНО: bsClear
+    TS.WordBreak := True;           // Перенос слов
+    Buffer.Canvas.TextStyle := TS;  // Применяем настройки
+    // ---------------------------------------
 
-    // Область для основного текста
+    Buffer.Canvas.Brush.Style := bsClear; // Прозрачный фон для текста
+
+    // Область для основного текста (с отступами)
     TextRect := Rect(50, 50, Buffer.Width - 50, Buffer.Height - 100);
 
-    // ИСПРАВЛЕНО: правильный метод рисования текста
+    // Рисуем основной текст
     Buffer.Canvas.TextRect(TextRect, TextRect.Left, TextRect.Top, MemoText.Text);
 
-    // Рисуем "Кому" и "От кого"
-    Buffer.Canvas.Font.Size := 16;
+    // Рисуем "Кому" и "От кого" внизу
+    Buffer.Canvas.Font.Size := 16; // Меньше основного
     TextY := Buffer.Height - 40;
 
     if EditRecipient.Text <> '' then
@@ -381,11 +394,15 @@ begin
 
     if Edit1.Text <> '' then
     begin
+      // Выравниваем "От кого" по правому краю
       Buffer.Canvas.TextOut(Buffer.Width - 50 -
-        Buffer.Canvas.TextWidth('От: ' + Edit1.Text), TextY, 'От: ' + Edit1.Text);
+        Buffer.Canvas.TextWidth('От: ' + Edit1.Text),
+        TextY, 'От: ' + Edit1.Text);
     end;
 
+    // Отображаем результат
     imgPreview.Picture.Assign(Buffer);
+
   finally
     Buffer.Free;
   end;

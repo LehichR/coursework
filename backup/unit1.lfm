@@ -333,6 +333,7 @@ object MainForm: TMainForm
           Align = alRight
           Caption = 'Очистить'
           TabOrder = 4
+          OnClick = ButtonClearClick
         end
       end
     end

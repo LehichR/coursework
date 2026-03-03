@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, StdCtrls,
-  ExtCtrls, Spin, ColorBox, ExtDlgs; // SynEdit удалён
+  ExtCtrls, Spin, ColorBox, ExtDlgs;
 
 type
 
@@ -275,18 +275,24 @@ end;
 // ---- Загрузка фона ----
 
 procedure TMainForm.ButtonLoadClick(Sender: TObject);
+var
+  Picture: TPicture;
 begin
   if OpenPictureDialog1.Execute then
   begin
+    Picture := TPicture.Create;
     try
-      FBackgroundFileName := OpenPictureDialog1.FileName;
-      FOriginalBackground.LoadFromFile(FBackgroundFileName);
+      Picture.LoadFromFile(OpenPictureDialog1.FileName);
+      // Преобразуем в TBitmap (если нужно сохранить оригинал)
+      FOriginalBackground.Assign(Picture.Graphic);
+      // Обновляем предпросмотр
       UpdatePreview;
-      UpdateStatus('Фон загружен: ' + ExtractFileName(FBackgroundFileName));
+      UpdateStatus('Фон загружен: ' + ExtractFileName(OpenPictureDialog1.FileName));
     except
       on E: Exception do
         ShowMessage('Ошибка загрузки изображения: ' + E.Message);
     end;
+    Picture.Free;
   end;
 end;
 
