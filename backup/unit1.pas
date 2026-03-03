@@ -6,7 +6,11 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, StdCtrls,
-  ExtCtrls, Spin, ColorBox, ExtDlgs;
+  ExtCtrls, Spin, ColorBox, ExtDlgs, Math;
+
+const
+  MAX_BACKGROUND_WIDTH = 2000;
+  MAX_BACKGROUND_HEIGHT = 2000;
 
 type
 
@@ -76,8 +80,10 @@ type
 
   private
     FOriginalBackground: TBitmap;      // Оригинал фона
-    FUpdateTimer: TTimer;              // Таймер для отложенного обновления (пока не используется, но оставим)
+    FBackgroundsPath: string;          // Путь к папке backgrounds
+    FUpdateTimer: TTimer;              // Таймер для отложенного обновления
     FNeedsUpdate: Boolean;             // Флаг (резерв)
+    FCurrentColor: TColor;              // Текущий цвет текста (дублируем для надёжности)
 
     procedure UpdateStatus(const Msg: string);
     procedure SwitchToEditor;
@@ -85,8 +91,9 @@ type
     procedure SwitchToAbout;
     procedure ApplyModernStyle;
     procedure UpdatePreview;            // Главный метод перерисовки
-    procedure DelayedUpdateTimer(Sender: TObject); // (запасной)
+    procedure DelayedUpdateTimer(Sender: TObject);
     procedure SetupUpdateTimer;         // Инициализация таймера
+    function ScaleImageToFit(Source: TBitmap; MaxWidth, MaxHeight: Integer): TBitmap;
 
   public
   end;
@@ -109,6 +116,9 @@ begin
 
   imgPreview.Transparent := False;
   imgPreview.AutoSize := False;
+  imgPreview.Stretch := False;      // Не растягиваем, сохраняем чёткость
+  imgPreview.Proportional := True;
+  imgPreview.Center := True;
 
   StatusBar1.SimplePanel := True;
   StatusBar1.SimpleText := 'Готово';
@@ -116,20 +126,16 @@ begin
   ToolBar1.Flat := True;
   ToolBar1.Transparent := False;
 
-   // ---- Установка начальных значений ----
-  SpinEdit1.Value := 24;          // Явно ставим размер шрифта 24
-  ColorBox1.Selected := clRed;    // Цвет по умолчанию
-  RadioButton2.Checked := True;    // Выравнивание по центру
-
-  // Убедимся, что imgPreview не масштабирует
-  imgPreview.Stretch := False;     // Не растягивать!
-  imgPreview.Proportional := True; // Сохранять пропорции (если нужно)
-  imgPreview.Center := True;       // Центрировать, если меньше панели
+  // Определяем путь к папке backgrounds относительно exe-файла
+  FBackgroundsPath := ExtractFilePath(Application.ExeName) + 'backgrounds';
+  if not DirectoryExists(FBackgroundsPath) then
+    CreateDir(FBackgroundsPath);
 
   // Настройка диалога выбора фона
   OpenPictureDialog1.Filter := 'Изображения|*.bmp;*.jpg;*.jpeg;*.png|Все файлы|*.*';
   OpenPictureDialog1.Title := 'Выберите фоновое изображение';
   OpenPictureDialog1.Options := [ofFileMustExist, ofHideReadOnly];
+  OpenPictureDialog1.InitialDir := FBackgroundsPath;
 
   // Заполнение списка шрифтов
   cmbFontName.Items := Screen.Fonts;
@@ -141,15 +147,19 @@ begin
   // Создание объекта для фона
   FOriginalBackground := TBitmap.Create;
 
-  // Настройка таймера (оставим для возможного использования позже)
+  // Настройка таймера
   SetupUpdateTimer;
 
   // Применение стилей
   ApplyModernStyle;
 
-  SwitchToEditor;
+  // Установка начальных значений параметров текста
+  SpinEdit1.Value := 24;          // Чёткий крупный текст
+  FCurrentColor := clRed;
+  ColorBox1.Selected := FCurrentColor;
+  RadioButton2.Checked := True;    // По центру
 
-  // Первоначальное обновление предпросмотра
+  SwitchToEditor;
   UpdatePreview;
 end;
 
@@ -281,20 +291,75 @@ begin
   end;
 end;
 
+// ---- Функция масштабирования изображения под максимальные размеры ----
+function TMainForm.ScaleImageToFit(Source: TBitmap; MaxWidth, MaxHeight: Integer): TBitmap;
+var
+  Scale: Double;
+  NewWidth, NewHeight: Integer;
+begin
+  Result := TBitmap.Create;
+  Result.PixelFormat := pf32bit;
+
+  if (Source.Width <= MaxWidth) and (Source.Height <= MaxHeight) then
+  begin
+    // Изображение уже в пределах лимита — просто копируем
+    Result.Width := Source.Width;
+    Result.Height := Source.Height;
+    Result.Canvas.Draw(0, 0, Source);
+  end
+  else
+  begin
+    // Масштабируем с сохранением пропорций
+    Scale := Min(MaxWidth / Source.Width, MaxHeight / Source.Height);
+    NewWidth := Round(Source.Width * Scale);
+    NewHeight := Round(Source.Height * Scale);
+    Result.Width := NewWidth;
+    Result.Height := NewHeight;
+    Result.Canvas.StretchDraw(Rect(0, 0, NewWidth, NewHeight), Source);
+  end;
+end;
+
 // ---- Загрузка фона ----
 
 procedure TMainForm.ButtonLoadClick(Sender: TObject);
 var
   Picture: TPicture;
+  ScaledBitmap: TBitmap;
 begin
+  // Убедимся, что диалог открывается в папке backgrounds
+  OpenPictureDialog1.InitialDir := FBackgroundsPath;
+
   if OpenPictureDialog1.Execute then
   begin
     Picture := TPicture.Create;
     try
       Picture.LoadFromFile(OpenPictureDialog1.FileName);
-      FOriginalBackground.Assign(Picture.Graphic);
+
+      // Проверяем размеры и при необходимости масштабируем
+      if (Picture.Width > MAX_BACKGROUND_WIDTH) or (Picture.Height > MAX_BACKGROUND_HEIGHT) then
+      begin
+        // Создаём временный TBitmap из Picture.Graphic
+        ScaledBitmap := TBitmap.Create;
+        try
+          ScaledBitmap.PixelFormat := pf32bit;
+          ScaledBitmap.Width := Picture.Width;
+          ScaledBitmap.Height := Picture.Height;
+          ScaledBitmap.Canvas.Draw(0, 0, Picture.Graphic);
+          // Масштабируем
+          FOriginalBackground.Assign(ScaleImageToFit(ScaledBitmap, MAX_BACKGROUND_WIDTH, MAX_BACKGROUND_HEIGHT));
+          UpdateStatus(Format('Фон загружен и уменьшен до %dx%d', [FOriginalBackground.Width, FOriginalBackground.Height]));
+        finally
+          ScaledBitmap.Free;
+        end;
+      end
+      else
+      begin
+        // Размер в пределах нормы
+        FOriginalBackground.Assign(Picture.Graphic);
+        UpdateStatus('Фон загружен: ' + ExtractFileName(OpenPictureDialog1.FileName));
+      end;
+
       UpdatePreview;
-      UpdateStatus('Фон загружен: ' + ExtractFileName(OpenPictureDialog1.FileName));
     except
       on E: Exception do
         ShowMessage('Ошибка загрузки изображения: ' + E.Message);
@@ -316,8 +381,9 @@ begin
     Edit1.Clear;
     cmbFontName.ItemIndex := cmbFontName.Items.IndexOf('Arial');
     if cmbFontName.ItemIndex = -1 then cmbFontName.ItemIndex := 0;
-    SpinEdit1.Value := 24;   // Увеличил размер по умолчанию для лучшей видимости
-    ColorBox1.Selected := clRed;
+    SpinEdit1.Value := 24;
+    FCurrentColor := clRed;
+    ColorBox1.Selected := FCurrentColor;
     CheckBox1.Checked := False;
     CheckBox2.Checked := False;
     CheckBox3.Checked := False;
@@ -338,10 +404,10 @@ var
 begin
   Buffer := TBitmap.Create;
   try
-    // ---- Важно: 32-битный формат для сглаживания ----
+    // 32-битный формат для качественного сглаживания
     Buffer.PixelFormat := pf32bit;
 
-    // Определяем размер буфера (как и раньше)
+    // Определяем размер буфера
     if (FOriginalBackground.Width > 0) and (FOriginalBackground.Height > 0) then
     begin
       Buffer.Width := FOriginalBackground.Width;
@@ -356,14 +422,13 @@ begin
       Buffer.Canvas.FillRect(0, 0, Buffer.Width, Buffer.Height);
     end;
 
-    // Настройка шрифта
+    // ========== ПЕРЕНАСТРОЙКА ШРИФТА ПОСЛЕ ФОНА ==========
     Buffer.Canvas.Font.Name := cmbFontName.Text;
-    Buffer.Canvas.Font.Size := SpinEdit1.Value;  // теперь точно 24
-    Buffer.Canvas.Font.Color := ColorBox1.Selected;
-    // ---- Качество текста ----
-    Buffer.Canvas.Font.Quality := fqClearType;   // или fqAntialiased
+    Buffer.Canvas.Font.Size := SpinEdit1.Value;
+    Buffer.Canvas.Font.Color := FCurrentColor;   // используем сохранённый цвет
+    Buffer.Canvas.Font.Quality := fqClearType;
 
-    // Стили
+    // Стили шрифта
     Buffer.Canvas.Font.Style := [];
     if CheckBox1.Checked then
       Buffer.Canvas.Font.Style := Buffer.Canvas.Font.Style + [fsBold];
@@ -372,7 +437,7 @@ begin
     if CheckBox3.Checked then
       Buffer.Canvas.Font.Style := Buffer.Canvas.Font.Style + [fsUnderline];
 
-    // Выравнивание
+    // Настройка выравнивания и переноса
     TS := Buffer.Canvas.TextStyle;
     if RadioButton1.Checked then
       TS.Alignment := taLeftJustify
@@ -383,23 +448,25 @@ begin
     TS.WordBreak := True;
     TS.SingleLine := False;
     Buffer.Canvas.TextStyle := TS;
-
     Buffer.Canvas.Brush.Style := bsClear;
 
-    // Область текста
+    // Область для основного текста
     if Buffer.Width > 100 then
       TextRect := Rect(50, 50, Buffer.Width - 50, Buffer.Height - 100)
     else
       TextRect := Rect(5, 5, Buffer.Width - 5, Buffer.Height - 10);
 
-    // Рисуем текст
+    // Рисуем основной текст
     if MemoText.Text <> '' then
       Buffer.Canvas.TextRect(TextRect, TextRect.Left, TextRect.Top, MemoText.Text)
     else
       Buffer.Canvas.TextRect(TextRect, TextRect.Left, TextRect.Top, 'Введите текст поздравления');
 
-    // "Кому" и "От кого"
+    // ========== ПЕРЕД РИСОВАНИЕМ НИЖНЕГО ТЕКСТА СНОВА СТАВИМ ЦВЕТ ==========
     Buffer.Canvas.Font.Size := 16;
+    Buffer.Canvas.Font.Color := FCurrentColor;   // ещё раз принудительно
+    // (остальные настройки шрифта уже заданы, можно не менять)
+
     TextY := Buffer.Height - 40;
     if EditRecipient.Text <> '' then
       Buffer.Canvas.TextOut(50, TextY, 'Для: ' + EditRecipient.Text);
@@ -408,7 +475,7 @@ begin
         Buffer.Canvas.TextWidth('От: ' + Edit1.Text),
         TextY, 'От: ' + Edit1.Text);
 
-    // Отображаем
+    // Отображаем результат
     imgPreview.Picture.Assign(Buffer);
     imgPreview.Refresh;
 
@@ -418,7 +485,6 @@ begin
 end;
 
 // ---- Обработчики изменений параметров ----
-// Все обработчики вызывают UpdatePreview немедленно.
 
 procedure TMainForm.cmbFontNameChange(Sender: TObject);
 begin
@@ -432,6 +498,7 @@ end;
 
 procedure TMainForm.ColorBox1Change(Sender: TObject);
 begin
+  FCurrentColor := ColorBox1.Selected;   // сохраняем выбранный цвет
   UpdatePreview;
 end;
 
@@ -452,7 +519,6 @@ end;
 
 procedure TMainForm.MemoTextChange(Sender: TObject);
 begin
-  // Немедленное обновление – текст должен появляться сразу
   UpdatePreview;
 end;
 
