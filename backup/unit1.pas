@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, StdCtrls,
-  ExtCtrls, Spin, ColorBox, ExtDlgs, SynEdit;
+  ExtCtrls, Spin, ColorBox, ExtDlgs; // SynEdit удалён
 
 type
 
@@ -15,31 +15,31 @@ type
   TMainForm = class(TForm)
     ButtonLoad: TButton;
     ButtonClear: TButton;
-    CheckBox1: TCheckBox;
-    CheckBox2: TCheckBox;
-    CheckBox3: TCheckBox;
+    CheckBox1: TCheckBox;      // Жирный
+    CheckBox2: TCheckBox;      // Курсив
+    CheckBox3: TCheckBox;      // Подчеркнутый
     ColorBox1: TColorBox;
     cmbFontName: TComboBox;
-    Edit1: TEdit;
-    EditRecipient: TEdit;
+    Edit1: TEdit;              // От кого
+    EditRecipient: TEdit;      // Кому
     GroupBoxFont: TGroupBox;
     GroupBoxText: TGroupBox;
     GroupBoxAddress: TGroupBox;
     imgPreview: TImage;
     ImageList1: TImageList;
-    Label1: TLabel;
-    Label2: TLabel;
-    Label3: TLabel;
-    Label4: TLabel;
-    Label5: TLabel;
+    Label1: TLabel;            // Шрифт
+    Label2: TLabel;            // Размер
+    Label3: TLabel;            // Цвет
+    Label4: TLabel;            // Кому
+    Label5: TLabel;            // От кого
     LabelSep: TLabel;
     MemoText: TMemo;
     OpenPictureDialog1: TOpenPictureDialog;
     PageControls: TPageControl;
     PanelPreview: TPanel;
-    RadioButton1: TRadioButton;
-    RadioButton2: TRadioButton;
-    RadioButton3: TRadioButton;
+    RadioButton1: TRadioButton; // Слева
+    RadioButton2: TRadioButton; // Центр
+    RadioButton3: TRadioButton; // Справа
     SpinEdit1: TSpinEdit;
     Splitter1: TSplitter;
     StatusBar1: TStatusBar;
@@ -54,19 +54,40 @@ type
     ToolButtonSave: TToolButton;
     ToolButton6: TToolButton;
     ToolButtonHelp: TToolButton;
+
     procedure ButtonLoadClick(Sender: TObject);
+    procedure ButtonClearClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure ToolButtonGalleryClick(Sender: TObject);
     procedure ToolButtonHelpClick(Sender: TObject);
     procedure ToolButtonNewClick(Sender: TObject);
     procedure ToolButtonSaveClick(Sender: TObject);
+
+    // Обработчики для элементов редактора
+    procedure cmbFontNameChange(Sender: TObject);
+    procedure SpinEdit1Change(Sender: TObject);
+    procedure ColorBox1Change(Sender: TObject);
+    procedure CheckBoxClick(Sender: TObject);
+    procedure RadioButtonClick(Sender: TObject);
+    procedure EditChange(Sender: TObject);
+    procedure MemoTextChange(Sender: TObject);
+
   private
+    FOriginalBackground: TBitmap;      // Оригинал фона
+    FBackgroundFileName: string;       // Путь к последнему загруженному фону
+    FUpdateTimer: TTimer;              // Таймер для отложенного обновления
+    FNeedsUpdate: Boolean;             // Флаг необходимости обновления
+
     procedure UpdateStatus(const Msg: string);
     procedure SwitchToEditor;
     procedure SwitchToGallery;
     procedure SwitchToAbout;
     procedure ApplyModernStyle;
+    procedure UpdatePreview;            // Главный метод перерисовки
+    procedure DelayedUpdateTimer(Sender: TObject); // Обработчик таймера
+    procedure SetupUpdateTimer;         // Инициализация таймера
 
   public
 
@@ -81,9 +102,7 @@ implementation
 
 { TMainForm }
 
-
-// ---- Работа с интерфейсом ----
-
+// ---- Инициализация и завершение ----
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
@@ -91,7 +110,6 @@ begin
   PanelPreview.DoubleBuffered := True;
 
   imgPreview.Transparent := False;
-
   imgPreview.AutoSize := False;
 
   StatusBar1.SimplePanel := True;
@@ -100,34 +118,60 @@ begin
   ToolBar1.Flat := True;
   ToolBar1.Transparent := False;
 
-  // ---- Настройка загрузки фона ----
+  // Настройка диалога выбора фона
   OpenPictureDialog1.Filter := 'Изображения|*.bmp;*.jpg;*.jpeg;*.png|Все файлы|*.*';
   OpenPictureDialog1.Title := 'Выберите фоновое изображение';
   OpenPictureDialog1.Options := [ofFileMustExist, ofHideReadOnly];
 
-  // ---- Настройка ComboBox ----
+  // Заполнение списка шрифтов
   cmbFontName.Items := Screen.Fonts;
-  Application.ProcessMessages;
-
   if cmbFontName.Items.IndexOf('Arial') >= 0 then
     cmbFontName.ItemIndex := cmbFontName.Items.IndexOf('Arial')
-  else
+  else if cmbFontName.Items.Count > 0 then
     cmbFontName.ItemIndex := 0;
 
+  // Создание объекта для фона
+  FOriginalBackground := TBitmap.Create;
+
+  // Настройка таймера для отложенного обновления
+  SetupUpdateTimer;
+
+  // Применение стилей
   ApplyModernStyle;
 
   SwitchToEditor;
 end;
 
+procedure TMainForm.FormDestroy(Sender: TObject);
+begin
+  FreeAndNil(FOriginalBackground);
+  FreeAndNil(FUpdateTimer);
+end;
+
+procedure TMainForm.SetupUpdateTimer;
+begin
+  FUpdateTimer := TTimer.Create(Self);
+  FUpdateTimer.Interval := 300; // 300 мс задержки
+  FUpdateTimer.Enabled := False;
+  FUpdateTimer.OnTimer := @DelayedUpdateTimer;
+end;
+
+procedure TMainForm.DelayedUpdateTimer(Sender: TObject);
+begin
+  FUpdateTimer.Enabled := False;
+  if FNeedsUpdate then
+  begin
+    UpdatePreview;
+    FNeedsUpdate := False;
+  end;
+end;
 
 // ---- Стилизация интерфейса ----
-
 
 procedure TMainForm.ApplyModernStyle;
 var
   i: Integer;
 begin
-  // Настройка PageControl
   PageControls.TabHeight := 1;
 
   ToolBar1.Flat := True;
@@ -137,19 +181,12 @@ begin
   ToolBar1.ButtonWidth := 80;
   ToolBar1.ButtonHeight := 46;
 
-  // Авторазмер для всех кнопок (кроме разделителей)
   for i := 0 to ToolBar1.ButtonCount - 1 do
-  begin
     if ToolBar1.Buttons[i].Style <> tbsDivider then
-    begin
       ToolBar1.Buttons[i].AutoSize := True;
-    end;
-  end;
 
-  // Настройка StatusBar
   StatusBar1.Font.Style := [fsBold];
 
-  // Настройка вкладок
   tsEditor.Caption := 'Редактор';
   tsGallery.Caption := 'Галерея';
   tsAbout.Caption := 'О программе';
@@ -161,90 +198,7 @@ begin
   cmbFontName.Sorted := True;
 end;
 
-
-// ---- Работа с ToolBar ----
-
-
-procedure TMainForm.ToolButtonNewClick(Sender: TObject);
-begin
-  SwitchToEditor;
-  // Здесь будет код очистки редактора для новой открытки
-  UpdateStatus('Создание новой открытки');
-end;
-
-
-// ---- Редактор открыток ----
-
-
-
-// ---- Загрузка фона ----
-
-procedure TMainForm.ButtonLoadClick(Sender: TObject);
-begin
-  if OpenPictureDialog1.Execute then
-  begin
-    try
-      // Загружаем изображение в imgPreview
-      imgPreview.Picture.LoadFromFile(OpenPictureDialog1.FileName);
-
-      // Можно сохранить путь к файлу для дальнейшего использования
-      FBackgroundFileName := OpenPictureDialog1.FileName;
-
-      // Обновляем статус
-      UpdateStatus('Фон загружен: ' + ExtractFileName(OpenPictureDialog1.FileName));
-
-      // Перерисовываем текст поверх нового фона
-      UpdatePreview;
-    except
-      on E: Exception do
-        ShowMessage('Ошибка загрузки изображения: ' + E.Message);
-    end;
-  end;
-
-end;
-
-procedure TMainForm.ToolButtonSaveClick(Sender: TObject);
-begin
-  // Сохранение открытки
-  UpdateStatus('Открытка сохранена');
-  // Здесь будет вызов функции сохранения
-end;
-
-procedure TMainForm.ToolButtonGalleryClick(Sender: TObject);
-begin
-  SwitchToGallery;
-  // Здесь будет код обновления галереи
-  UpdateStatus('Просмотр галереи открыток');
-end;
-
-procedure TMainForm.ToolButtonHelpClick(Sender: TObject);
-begin
-  SwitchToAbout;
-  UpdateStatus('Справка по программе');
-end;
-
-
-// ---- Горячие клавиши ----
-
-
-procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
-begin
-  case Key of
-    Ord('H'): if ssCtrl in Shift then   // Ctrl+H - справка
-                ToolButtonHelpClick(Self);
-    Ord('N'): if ssCtrl in Shift then   // Ctrl+N - новая
-                ToolButtonNewClick(Self);
-    Ord('G'): if ssCtrl in Shift then   // Ctrl+G - галерея
-                ToolButtonGalleryClick(Self);
-    Ord('S'): if ssCtrl in Shift then   // Ctrl+S - сохранить
-                ToolButtonSaveClick(Self);
-  end;
-end;
-
-
-// ---- Переключение между режимами ----
-
+// ---- Переключение режимов ----
 
 procedure TMainForm.SwitchToEditor;
 begin
@@ -252,9 +206,8 @@ begin
   ToolButtonNew.Down := True;
   ToolButtonGallery.Down := False;
   ToolButtonHelp.Down := False;
-  if DirectoryExists('cards') then
-
-  else
+  // Создаём папку cards, если её нет
+  if not DirectoryExists('cards') then
     CreateDir('cards');
 end;
 
@@ -279,5 +232,204 @@ begin
   StatusBar1.SimpleText := Msg;
 end;
 
-end.
+// ---- Обработчики кнопок тулбара ----
 
+procedure TMainForm.ToolButtonNewClick(Sender: TObject);
+begin
+  SwitchToEditor;
+  // Очистка редактора (можно реализовать позже)
+  UpdateStatus('Создание новой открытки');
+end;
+
+procedure TMainForm.ToolButtonSaveClick(Sender: TObject);
+begin
+  // TODO: сохранение
+  UpdateStatus('Открытка сохранена');
+end;
+
+procedure TMainForm.ToolButtonGalleryClick(Sender: TObject);
+begin
+  SwitchToGallery;
+  UpdateStatus('Просмотр галереи открыток');
+end;
+
+procedure TMainForm.ToolButtonHelpClick(Sender: TObject);
+begin
+  SwitchToAbout;
+  UpdateStatus('Справка по программе');
+end;
+
+// ---- Горячие клавиши ----
+
+procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  case Key of
+    Ord('H'): if ssCtrl in Shift then ToolButtonHelpClick(Self);
+    Ord('N'): if ssCtrl in Shift then ToolButtonNewClick(Self);
+    Ord('G'): if ssCtrl in Shift then ToolButtonGalleryClick(Self);
+    Ord('S'): if ssCtrl in Shift then ToolButtonSaveClick(Self);
+  end;
+end;
+
+// ---- Загрузка фона ----
+
+procedure TMainForm.ButtonLoadClick(Sender: TObject);
+begin
+  if OpenPictureDialog1.Execute then
+  begin
+    try
+      FBackgroundFileName := OpenPictureDialog1.FileName;
+      FOriginalBackground.LoadFromFile(FBackgroundFileName);
+      UpdatePreview;
+      UpdateStatus('Фон загружен: ' + ExtractFileName(FBackgroundFileName));
+    except
+      on E: Exception do
+        ShowMessage('Ошибка загрузки изображения: ' + E.Message);
+    end;
+  end;
+end;
+
+// ---- Очистка редактора ----
+
+procedure TMainForm.ButtonClearClick(Sender: TObject);
+begin
+  if MessageDlg('Очистка', 'Очистить редактор и начать новую открытку?',
+    mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+  begin
+    // Очищаем фон
+    FOriginalBackground.SetSize(0, 0); // или Free и Create заново
+    // Очищаем текстовые поля
+    MemoText.Clear;
+    EditRecipient.Clear;
+    Edit1.Clear;
+    // Сбрасываем настройки по умолчанию (опционально)
+    cmbFontName.ItemIndex := cmbFontName.Items.IndexOf('Arial');
+    SpinEdit1.Value := 24;
+    ColorBox1.Selected := clRed;
+    CheckBox1.Checked := False;
+    CheckBox2.Checked := False;
+    CheckBox3.Checked := False;
+    RadioButton2.Checked := True; // По центру
+    UpdatePreview;
+    UpdateStatus('Редактор очищен');
+  end;
+end;
+
+// ---- Метод UpdatePreview ----
+
+procedure TMainForm.UpdatePreview;
+var
+  Buffer: TBitmap;
+  TextRect: TRect;
+  TextY: Integer;
+begin
+  Buffer := TBitmap.Create;
+  try
+    // Определяем размер буфера
+    if (FOriginalBackground.Width > 0) and (FOriginalBackground.Height > 0) then
+    begin
+      Buffer.Width := FOriginalBackground.Width;
+      Buffer.Height := FOriginalBackground.Height;
+      Buffer.Canvas.Draw(0, 0, FOriginalBackground);
+    end
+    else
+    begin
+      Buffer.Width := 800;
+      Buffer.Height := 600;
+      Buffer.Canvas.Brush.Color := clWhite;
+      Buffer.Canvas.FillRect(0, 0, Buffer.Width, Buffer.Height);
+    end;
+
+    // Настройка шрифта
+    Buffer.Canvas.Font.Name := cmbFontName.Text;
+    Buffer.Canvas.Font.Size := SpinEdit1.Value;
+    Buffer.Canvas.Font.Color := ColorBox1.Selected;
+
+    // ИСПРАВЛЕНО: стили, а не размер
+    Buffer.Canvas.Font.Style := [];
+    if CheckBox1.Checked then
+      Buffer.Canvas.Font.Style := Buffer.Canvas.Font.Style + [fsBold];
+    if CheckBox2.Checked then
+      Buffer.Canvas.Font.Style := Buffer.Canvas.Font.Style + [fsItalic];
+    if CheckBox3.Checked then
+      Buffer.Canvas.Font.Style := Buffer.Canvas.Font.Style + [fsUnderline];
+
+    // Выравнивание
+    if RadioButton1.Checked then
+      Buffer.Canvas.TextStyle.Alignment := taLeftJustify
+    else if RadioButton2.Checked then
+      Buffer.Canvas.TextStyle.Alignment := taCenter
+    else if RadioButton3.Checked then
+      Buffer.Canvas.TextStyle.Alignment := taRightJustify;
+
+    Buffer.Canvas.TextStyle.WordBreak := True;
+    Buffer.Canvas.Brush.Style := bsClear; // ИСПРАВЛЕНО: bsClear
+
+    // Область для основного текста
+    TextRect := Rect(50, 50, Buffer.Width - 50, Buffer.Height - 100);
+
+    // ИСПРАВЛЕНО: правильный метод рисования текста
+    Buffer.Canvas.TextRect(TextRect, TextRect.Left, TextRect.Top, MemoText.Text);
+
+    // Рисуем "Кому" и "От кого"
+    Buffer.Canvas.Font.Size := 16;
+    TextY := Buffer.Height - 40;
+
+    if EditRecipient.Text <> '' then
+      Buffer.Canvas.TextOut(50, TextY, 'Для: ' + EditRecipient.Text);
+
+    if Edit1.Text <> '' then
+    begin
+      Buffer.Canvas.TextOut(Buffer.Width - 50 -
+        Buffer.Canvas.TextWidth('От: ' + Edit1.Text), TextY, 'От: ' + Edit1.Text);
+    end;
+
+    imgPreview.Picture.Assign(Buffer);
+  finally
+    Buffer.Free;
+  end;
+end;
+
+// ---- Обработчики изменений параметров ----
+
+procedure TMainForm.cmbFontNameChange(Sender: TObject);
+begin
+  UpdatePreview; // Мгновенно, т.к. это не текст
+end;
+
+procedure TMainForm.SpinEdit1Change(Sender: TObject);
+begin
+  UpdatePreview;
+end;
+
+procedure TMainForm.ColorBox1Change(Sender: TObject);
+begin
+  UpdatePreview;
+end;
+
+procedure TMainForm.CheckBoxClick(Sender: TObject);
+begin
+  UpdatePreview;
+end;
+
+procedure TMainForm.RadioButtonClick(Sender: TObject);
+begin
+  UpdatePreview;
+end;
+
+procedure TMainForm.EditChange(Sender: TObject);
+begin
+  // Для полей "Кому" и "От кого" тоже можно обновлять сразу
+  UpdatePreview;
+end;
+
+procedure TMainForm.MemoTextChange(Sender: TObject);
+begin
+  // При изменении текста запускаем таймер с задержкой
+  FNeedsUpdate := True;
+  FUpdateTimer.Enabled := False;  // Сброс
+  FUpdateTimer.Enabled := True;
+end;
+
+end.
