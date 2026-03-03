@@ -1,0 +1,463 @@
+object MainForm: TMainForm
+  Left = 273
+  Height = 605
+  Top = 159
+  Width = 721
+  BorderStyle = bsSingle
+  Caption = 'Postcards'
+  ClientHeight = 605
+  ClientWidth = 721
+  DesignTimePPI = 120
+  KeyPreview = True
+  LCLVersion = '4.2.0.0'
+  OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
+  object ToolBar1: TToolBar
+    Left = 0
+    Height = 48
+    Top = 0
+    Width = 721
+    Caption = 'ToolBar1'
+    Font.CharSet = RUSSIAN_CHARSET
+    Font.Pitch = fpVariable
+    Font.Quality = fqDraft
+    Images = ImageList1
+    ParentFont = False
+    TabOrder = 0
+    object ToolButtonNew: TToolButton
+      Left = 1
+      Hint = 'Создать новую открытку (Ctrl+N)'
+      Top = 2
+      Caption = 'Новая открытка'
+      ImageIndex = 0
+      ParentShowHint = False
+      ShowHint = True
+      OnClick = ToolButtonNewClick
+    end
+    object ToolButton2: TToolButton
+      Left = 30
+      Height = 28
+      Top = 2
+      Caption = 'ToolButton2'
+      Style = tbsSeparator
+    end
+    object ToolButtonGallery: TToolButton
+      Left = 38
+      Hint = 'Открыть галерею сохраненных открыток (Ctrl+G)'
+      Top = 2
+      Caption = 'Открыть \ галерея'
+      ImageIndex = 1
+      ParentShowHint = False
+      ShowHint = True
+      OnClick = ToolButtonGalleryClick
+    end
+    object ToolButton4: TToolButton
+      Left = 67
+      Height = 28
+      Top = 2
+      Caption = 'ToolButton4'
+      Style = tbsSeparator
+    end
+    object ToolButtonSave: TToolButton
+      Left = 75
+      Hint = 'Сохранить текущую открытку (Ctrl+S)'
+      Top = 2
+      Caption = 'Сохранить'
+      ImageIndex = 2
+      ParentShowHint = False
+      ShowHint = True
+      OnClick = ToolButtonSaveClick
+    end
+    object ToolButton6: TToolButton
+      Left = 104
+      Height = 28
+      Top = 2
+      Caption = 'ToolButton6'
+      Style = tbsSeparator
+    end
+    object ToolButtonHelp: TToolButton
+      Left = 112
+      Hint = 'Справка / О программе (Ctrl+H)'
+      Top = 2
+      Caption = 'Справка'
+      ImageIndex = 3
+      ParentShowHint = False
+      ShowHint = True
+      OnClick = ToolButtonHelpClick
+    end
+  end
+  object PageControls: TPageControl
+    Left = 0
+    Height = 528
+    Top = 48
+    Width = 721
+    ActivePage = tsEditor
+    Align = alClient
+    ShowTabs = False
+    TabIndex = 0
+    TabOrder = 1
+    object tsEditor: TTabSheet
+      Caption = 'tsEditor'
+      ClientHeight = 520
+      ClientWidth = 713
+      object Splitter1: TSplitter
+        Left = 368
+        Height = 520
+        Top = 0
+        Width = 5
+        Align = alRight
+        MinSize = 50
+        ResizeAnchor = akRight
+      end
+      object imgPreview: TImage
+        Left = 0
+        Height = 520
+        Top = 0
+        Width = 368
+        Align = alClient
+        Center = True
+        Proportional = True
+        Stretch = True
+      end
+      object PanelPreview: TPanel
+        Left = 373
+        Height = 520
+        Top = 0
+        Width = 340
+        Align = alRight
+        ClientHeight = 520
+        ClientWidth = 340
+        TabOrder = 1
+        object GroupBoxAddress: TGroupBox
+          Left = 1
+          Height = 120
+          Top = 1
+          Width = 338
+          Align = alTop
+          Caption = 'Адресат'
+          ClientHeight = 95
+          ClientWidth = 334
+          TabOrder = 0
+          object Label1: TLabel
+            Left = 8
+            Height = 20
+            Top = 0
+            Width = 39
+            Caption = 'Кому:'
+          end
+          object EditRecipient: TEdit
+            Left = 72
+            Height = 28
+            Top = 0
+            Width = 252
+            Alignment = taRightJustify
+            Anchors = [akTop, akLeft, akRight]
+            TabOrder = 0
+          end
+          object Label2: TLabel
+            Left = 8
+            Height = 20
+            Top = 40
+            Width = 55
+            Caption = 'От кого:'
+          end
+          object Edit1: TEdit
+            Left = 72
+            Height = 28
+            Top = 40
+            Width = 251
+            Alignment = taRightJustify
+            Anchors = [akTop, akLeft, akRight]
+            TabOrder = 1
+          end
+        end
+        object GroupBoxText: TGroupBox
+          Left = 1
+          Height = 150
+          Top = 121
+          Width = 338
+          Align = alTop
+          Caption = 'Текст поздравления'
+          ClientHeight = 125
+          ClientWidth = 334
+          TabOrder = 1
+          object MemoText: TMemo
+            Left = 0
+            Height = 125
+            Top = 0
+            Width = 334
+            Align = alClient
+            ScrollBars = ssVertical
+            TabOrder = 0
+          end
+        end
+        object GroupBoxFont: TGroupBox
+          Left = 1
+          Height = 200
+          Top = 271
+          Width = 338
+          Align = alTop
+          Caption = 'Настройки текста'
+          ClientHeight = 175
+          ClientWidth = 334
+          TabOrder = 2
+          object Label3: TLabel
+            Left = 8
+            Height = 20
+            Top = 0
+            Width = 48
+            Caption = 'Шрифт'
+          end
+          object cmbFontName: TComboBox
+            Left = 64
+            Height = 28
+            Top = 0
+            Width = 125
+            DropDownCount = 12
+            ItemHeight = 20
+            Sorted = True
+            TabOrder = 0
+            Text = 'cmbFontName'
+          end
+          object Label4: TLabel
+            Left = 8
+            Height = 20
+            Top = 32
+            Width = 51
+            Caption = 'Размер'
+          end
+          object SpinEdit1: TSpinEdit
+            Left = 64
+            Height = 28
+            Top = 32
+            Width = 125
+            MaxValue = 82
+            MinValue = 8
+            TabOrder = 1
+            Value = 10
+          end
+          object ColorBox1: TColorBox
+            Left = 64
+            Height = 26
+            Top = 64
+            Width = 125
+            ItemHeight = 20
+            TabOrder = 2
+          end
+          object Label5: TLabel
+            Left = 8
+            Height = 20
+            Top = 64
+            Width = 33
+            Caption = 'Цвет'
+          end
+          object CheckBox1: TCheckBox
+            Left = 8
+            Height = 24
+            Top = 96
+            Width = 68
+            Caption = 'Курсив'
+            Font.CharSet = RUSSIAN_CHARSET
+            Font.Pitch = fpVariable
+            Font.Quality = fqDraft
+            Font.Style = [fsItalic]
+            ParentFont = False
+            TabOrder = 3
+          end
+          object CheckBox2: TCheckBox
+            Left = 104
+            Height = 24
+            Top = 96
+            Width = 84
+            Caption = 'Жирный'
+            Font.CharSet = RUSSIAN_CHARSET
+            Font.Pitch = fpVariable
+            Font.Quality = fqDraft
+            Font.Style = [fsBold]
+            ParentFont = False
+            TabOrder = 4
+          end
+          object CheckBox3: TCheckBox
+            Left = 200
+            Height = 24
+            Top = 96
+            Width = 123
+            Caption = 'Подчеркнутый'
+            Font.CharSet = RUSSIAN_CHARSET
+            Font.Pitch = fpVariable
+            Font.Quality = fqDraft
+            Font.Style = [fsUnderline]
+            ParentFont = False
+            TabOrder = 5
+          end
+          object RadioButton1: TRadioButton
+            Left = 200
+            Height = 24
+            Top = 0
+            Width = 112
+            Caption = 'RadioButton1'
+            TabOrder = 6
+          end
+          object RadioButton2: TRadioButton
+            Left = 200
+            Height = 24
+            Top = 24
+            Width = 112
+            Caption = 'RadioButton2'
+            TabOrder = 7
+          end
+          object RadioButton3: TRadioButton
+            Left = 200
+            Height = 24
+            Top = 48
+            Width = 112
+            Caption = 'RadioButton3'
+            TabOrder = 8
+          end
+        end
+        object ButtonLoad: TButton
+          Left = 1
+          Height = 48
+          Top = 471
+          Width = 168
+          Align = alLeft
+          Caption = 'Загрузить'
+          TabOrder = 3
+          OnClick = ButtonLoadClick
+        end
+        object ButtonClear: TButton
+          Left = 171
+          Height = 48
+          Top = 471
+          Width = 168
+          Align = alRight
+          Caption = 'Очистить'
+          TabOrder = 4
+        end
+      end
+    end
+    object tsGallery: TTabSheet
+      Caption = 'tsGallery'
+    end
+    object tsAbout: TTabSheet
+      Caption = 'tsAbout'
+    end
+  end
+  object StatusBar1: TStatusBar
+    Left = 0
+    Height = 29
+    Top = 576
+    Width = 721
+    Panels = <>
+  end
+  object ImageList1: TImageList
+    Height = 24
+    Width = 24
+    Left = 462
+    Bitmap = {
+      4C7A0400000018000000180000005F0C00000000000078DAED997974D4D515C7
+      87C59E038805B42EA898633D68AD58ACE2C6E268142C82E286A060AD6571A114
+      44455C70B41AC2625802614B2028A0A00904B249C00C34916C0205B227CC9264
+      F6994C2699ECE1DB7BDF9B4C06C86426C1FED7DF39DFC3CB5B3EBFFBEEBBEFBE
+      F71B0028403AE96AEE034F59996DDD4B9A29EB5B7A9FAC6EECD5DED613A91D0D
+      7D428E1A67ABCEBAC7A8B582AF262D523B1AFB851C35BFAACC308CBB1CBEAAA1
+      A5B722C31CAE3860C80DD9E91E3328C1AA1E94665812A236CE552457EAE95DA1
+      97C3672D2029322CABAF39623E3BEE17A7735476F5997EA9554E45926E7DBAC5
+      AD0C466A8B7BB4B3B96DA02F575BDF3A5455EA7A8FA4FACD59E7FAE7CED419D3
+      6ACEE35B5B1BEE396E8522A11C8AFD65B822A10CA30E9FC3E36A523AABFC028D
+      395C8A21FB0B1BF81DBEFC747BD3EF15C955B1E48783FD0F197F7CA5A0DE50D6
+      0864D401B30AEB3029D72A34F3940D99965AE86B3C72BAA0AFAE2139A17754E3
+      B8C18AD1F40E9E4767FEA138F98D22C5F0DED07493EB857C376615B9F120D9BF
+      CF402F6A69926A6E20D5034DA446AA6FAC051A5835D0D9ED08FDA9AC53BEDAD6
+      D43B24DDFC3ACDA3489170EEA42251872585D55898EFC0886326E4D9EB7CD86E
+      1FB60BA8AF2139A1B3D9045FDD095F5560EFA338A80F1F996179E9B53C63B8E2
+      A016ABCA6A607537E2830207F655D574C986BB9AF856E2FBF78FF75DF916559F
+      442D22CB695C73A30FD7DDC1156CC915AAB343673507CD7F58ADC7D9EABA8036
+      C3ED106CD4DAA0B398107AA4A453FF5CCC9F9DA3976BC8EC261F7643E76CD45A
+      A1331B053F3D58BEB0B9CEC7E61A1FAEC3CB858B6526BE21787EB62E289BE1B2
+      00356692093A5315F18B83F30FF3BBF0F5C56C388DD0192B117AB83838FBB3B4
+      1EAED3876BEFE00AB6E40A55574167A8E81E3F089BE13408361C95C4D713BF28
+      38FF6469E41A32BBCE87EDF2615777B061AF80AE4A27F8C1D97FCE63B3CDC766
+      B38F3F0C92EB61C3AE83AE528BD0B4EEF07D6D36FBF8A39D5D21D9368A059B96
+      F8E7885F189C7F8E9777E96BC9D67BD9B06AA0AB2817FCF460F9C266938FCD55
+      1D360B3673251B9672E8F465C42F088A3F595D820C6D0532347AA9733A921619
+      E51AA9B273A4725219324A4B91515282B8FC12DC9B52108C7F160D8CCF6FBAF5
+      60212E5441E73A902F348CD4EF87FC5AE23F743153D3D0DABBBAE5BCB8E3D039
+      BC90CECA2859DFD62BDD5A7F59771F6D434B2F658E79FC6BA71D33634F09BE8A
+      CF626D436B5F658EED71C501CD0C9E13FBAD075A94DED2D64B71DA318398A583
+      763B5F0EF95EF247669A1FA57FCF905403E20B9A428F6A313DAB2268717F1EC7
+      7388250D2A704E1D70C878EEFE9C6AED63275CC503D38C9A10B569299DFB57DE
+      92C479977275371EEECFE35425AE05EC931012B14BF73ACEE318A5E6A74ED719
+      E9DEB696DB86246BB0B3A2B6477CBA3344B13F586C37B32B9A8119450D166A13
+      F557A5E811ADEF195FC4497D6BDF9199D671EC93896437B1CDBF3D6C2A531CA8
+      7E7775E9F90197E31FBA1FF65266D942C9D65321E9A64FD927C3E3B38BDFDE16
+      557C7DC219F388EF4E44ADDEF2393489AB69D006FF3ABA09A8FCCF257C8E6F45
+      826626C709AF25FB7BD2EE38B83FFB33366D781F619BFF057C7A6760A9FE28DF
+      D1897F7CF545894335F5DBEF81D58F774F5FDE27E711809F9D7B58F563DC1A40
+      93D33D7D3327283EF55161DF1274FBE1319DF0CF2FFD83FD125FFE8AFC4ED7EA
+      57E4D72DB903A933862176CA50A153736FFD55F9DA7FDE0665487FFAF85208A9
+      1EF9DDFFF95DF03F1A7B0DDAD64E040E7CDA3D454EEA74FF5ECC7FE0A67EE21D
+      3C0F7F8A7D66289C8B6F0F2AFF5CCC0F46DC9FC705953F2F833F27CFE0579332
+      7418185FD8645C341CF3EE1F82D137F70F5ADC9FC70573BE377F7C87DDF0CE70
+      94CFBF2D68717F1E17D41DC55CACC4CED994FF66015FBF0EECF81B10FB1A2C66
+      73B784A867800D4F932603DFCDFF92EEC58305DF447CC1FEBB978DD8BFC25059
+      E157F6D36AD4A64793B652395DD409F67A62AFA7388D9C5883B8F7BF80CB3418
+      A622E5C56C6C9F09BDA6DCAF6AD236029B9E03363E8B9A4351A2CE870DACFB0B
+      B076420DC5EB8382EF65BF0A6C9B499A81F2A27CBF72A446127B8AF08923659D
+      A8C3FAA77CD9C09AF1BC1F9482DF6EB7878D9857507CE6945FD992D678FC3D19
+      B6C40851D7C17E52B2D73CE1E1172ADB7DD2CE46CC749C3D91E3579603ABE43A
+      923F2C092B449D97BD96D8AB9F906772C529258CC4F7DAFD32103D1DD83A0DA7
+      8E1FF32B53FC32E9EBF513618A0B13755E9F08762810F1980FDF63B7878DAD2F
+      21EFD861BF2A4ADE8EAABD9F933EA3F2369CF8391D142F3206F93DCCFEEA510F
+      BF4079311B5B5E84EB9B7FC0F5F53CD2DB70ED780BAED837496FC0B57D2E5CDB
+      E69066C315334BF4A92BCD95DF819632CAA54B257B157DC6549C947C2F7B2AB0
+      F945D20BDEF84314C7C9D35E7F7BD7719DC7D76C37B1478D02162CA05718E9F2
+      9AF089F4BFDEC36FB73B96E2544DB9366F8F54EE77A46F811CD66E207B97473B
+      81AC6FA40A0E89DF70162E04AEBD1698370FA837D177610AAD11FBDE90AFC416
+      E913710635D6A2278F853E67E7CF07060D023EF998DE61A3EFFF96865982CFFE
+      60B1EF3C4F535353A76A6B6B83DB0D1CA3907996DC77DD7540EFDEFCE36C87FA
+      F401C2C204E60C0C6789FFBCF437FBCDF3D4D6D676AA9A9A166CA2A3EAA69B80
+      FBEE93FE584A667D4243C7D3725C710530620470E488C0EC107CB196B48E091F
+      05F4436626306C18309196993E7B515F2FEB732984EEBD17B8E1065A96E3406B
+      792E7F9B3F852AE27B7209F67FE8E5D8EDF60BE47038D0DADA8AE769AAF7DC03
+      1415010D0D0D70B95CC26777DD25E793937D1E387D50EE35DD2F4A549D517A73
+      7710F7921B6F04DE7A0B620D7C9FE868E038D9DD565900A42E8788198E7FE68B
+      7381627BDF077EED6FB7F3AAAB80C58BD9F6960BE6E67DEAEC68E0D8A9CAE7DF
+      C0C60BBEC825945FE31707B4FF81078049D4DD60E8BC9DE770CB2D4062A2F873
+      31AA4E2B11E9C9DDBC17033C11113226376EBCB44DAF07A6D0528E1C49EB739A
+      16BEB5651A2A993F51EEF7B8F702F2351AE049EA7AFDF5407838505ACAB14CDB
+      3505984C29A47F7F0ACA1DB40EC5198043AF147C914B26203DEC5D28E833A72B
+      7D9104E497C935BEF966A05F3FA06F5FE0EAAB65FC309BF226E51BCA69DA5CA5
+      38633CB95BBBE215A83EDC418A856A096B3B691B541FC4482D8EC19ACFA2A149
+      DD83467D29D2D2C8AD91721EBB293D95E6BBD15648B93A9ACE111505AC3647F2
+      C5B940F92EC2732E7C45B975D523A4B1C0CA31C08AD1C0F28708F420B08CB492
+      EAB74C95392C6F2F658164CA8B51F4129AD4578F49B6EA4EFEEEEBF2B7260A72
+      051C8601A8AEBC1D8ECAFBE1A8182B45E5EAAAE1A28DFBF4E4B7217DD6106425
+      4E47EABA0D4859750249E1362486B508713965D52F48895C8FAC83D344DFEEB0
+      4B3347222DE247242DB361FFA7E7F103EDBBBDEF027BDE91E232D7711BF7498B
+      484549C69F02722B740370366D36925718114F497C0F1D1A3BDFA4BB059D3B31
+      33644CB0B8CC75DCC67DB86FCA0A3376AD7C13B9D903FCF277AD7C03C9E116C4
+      519EDBF53631E85EB479AA3C23F97EC6DF282C2E731DB7711FEECB6392965BB0
+      73D55CBF3E611BDAD9D174E647D101C27B9BCF5BB6F9643C70225E96B98EDBB8
+      0FF76D7F47F20A13B1EEBE642DD9873CCF7636DBC88C3513E49DE6282584D666
+      292E731DB7711FEEDBFE0E66A4AE398492BC21DE18E438E175625FF27CD926C1
+      1E2FF704DF37E21677FC36CC65AEE336EEC37D790C8F6546D232AB882B19DF57
+      2235728388055E2FF629CF9B6D136CDA222BC6CA7DB3ED55292E8B3AA5E71D13
+      E4181ECB0C6671ECDA79EF54DD8E548A6F8E378E095E37B687E7CF3632279CF6
+      EE324ACC61A3A4B8CC75E21D8FCABE620E53248359BC3F1CBC07692FF27EE198
+      E675635FF23D95EDE21CB17CB4E4F1DFEDDFBA5CE63A6EE33EFC378FE1B1CC60
+      5652B895D8A3C47EE73DC9FB86639BE3AFFD0EB9721C311E9636F3DD85FFBF84
+      C565AEE336EEC37D790C8F6506B312C39ABDF92418FEB1CD1D87009783E607E9
+      9F7F6FE9E0733958FF701EE4B508B4BE195B3BF85C0EBCBE79DE1CCBB114283E
+      33637C2E593181E3F3404424AC95327FF35E08B4BF7EDEDEC1E772A0FD7564CF
+      4B703A657ED09C188C436B53BACC0FECF3B656292E77951F38B7EBB3065F9083
+      387FA7506EF29BDFE81BEDE43E292EFBCB6F2994DB4B3247749E9F29B7728EED
+      717E0EE73360CEFFF07C79A3CBF3A5E32CB89BD62355AC53E0F3D12AD6CE9F4F
+      FC89D7FCA73DD3449CF1FEE0FDC27B92C5658EEF83D4C671C27D7B7287E0F8E2
+      1896797094CFFD44EE4B6E6B8F413FFA2FC22D05F9
+    }
+  end
+  object OpenPictureDialog1: TOpenPictureDialog
+    Left = 504
+  end
+end
